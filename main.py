@@ -62,7 +62,7 @@ def izracunaj_centre(slika, izbira, dimenzija_centra, T, k):
     centri = np.array(centri, dtype=np.float32)
     return centri
 
-# Implementacija K-means algoritma za segmentacijo slike
+# Implementacija K-means algoritma za segmentacijo slike.
 def kmeans(slika, k=3, iteracije=10, izbira="nakljucno", dimenzija_centra=3, T=20):
     h, w, c = slika.shape
     podatki = slika.reshape((-1, 3))  # preoblikuj sliko v seznam barv (vsaka vrstica je piksel)
