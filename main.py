@@ -101,6 +101,65 @@ def kmeans(slika, k=3, iteracije=10, izbira="nakljucno", dimenzija_centra=3, T=2
     return segmentacija
 
 
+# Implementacija MeanShift algoritma za segmentacijo slike
+def meanshift(slika, h, dimenzija, min_cd=10, max_iter=10):
+    h_img, w_img, c = slika.shape
+    podatki = slika.reshape((-1, 3))  # preoblikuj sliko v seznam barv
+
+    if dimenzija == 5:
+        # Dodaj prostorske koordinate (x, y)
+        xx, yy = np.meshgrid(np.arange(w_img), np.arange(h_img))
+        xy = np.stack((xx, yy), axis=2).reshape((-1, 2))
+        podatki = np.concatenate((podatki, xy), axis=1)
+
+    podatki = np.float32(podatki)
+    novi_podatki = np.copy(podatki)
+
+    # Gaussova funkcija za določanje uteži
+    def gauss_jedro(d2, h):
+        return np.exp(-d2 / (2 * (h ** 2)))
+
+    # Premikaj vsako točko proti gostejšemu območju (povprečju sosedov)
+    for i in range(podatki.shape[0]):
+        tocka = podatki[i]
+        for _ in range(max_iter):
+            razdalje2 = np.sum((podatki - tocka) ** 2, axis=1)
+            utezi = gauss_jedro(razdalje2, h)
+            utezi = utezi[:, np.newaxis]
+
+            nova_tocka = np.sum(utezi * podatki, axis=0) / np.sum(utezi)
+            premik = np.linalg.norm(nova_tocka - tocka)
+
+            if premik < 1.0:  # če je premik majhen, končaj
+                break
+            tocka = nova_tocka
+
+        novi_podatki[i] = tocka
+
+    # Skupine: združi podobne točke v iste centre
+    centri = []
+    labels = np.full((podatki.shape[0],), -1, dtype=int)
+
+    for i in range(podatki.shape[0]):
+        najden = False
+        for j, center in enumerate(centri):
+            if np.linalg.norm(novi_podatki[i] - center) < min_cd:
+                labels[i] = j
+                najden = True
+                break
+        if not najden:
+            centri.append(novi_podatki[i])
+            labels[i] = len(centri) - 1
+
+    centri = np.array(centri)
+
+    # Ustvari segmentirano sliko z barvami centrov
+    segmentacija = centri[labels][:, :3]
+    segmentacija = np.uint8(segmentacija)
+    segmentacija = segmentacija.reshape((h_img, w_img, 3))
+    return segmentacija
+
+    
 if __name__ == "__main__":
     """
     slika = cv.imread("./paprika.jpg")
